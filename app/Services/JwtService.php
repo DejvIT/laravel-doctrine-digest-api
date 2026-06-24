@@ -19,7 +19,7 @@ class JwtService
     public function issueToken(Blogger $blogger): string
     {
         $now = time();
-        $ttl = (int) env('JWT_TTL', 86400);
+        $ttl = config('jwt.ttl');
 
         $payload = [
             'sub'   => $blogger->getUuid(),
@@ -28,13 +28,13 @@ class JwtService
             'exp'   => $now + $ttl,
         ];
 
-        return JWT::encode($payload, env('JWT_SECRET'), 'HS256');
+        return JWT::encode($payload, config('jwt.secret'), config('jwt.algorithm'));
     }
 
     public function validateToken(string $token): Blogger
     {
         try {
-            $payload = JWT::decode($token, new Key(env('JWT_SECRET'), 'HS256'));
+            $payload = JWT::decode($token, new Key(config('jwt.secret'), config('jwt.algorithm')));
         } catch (Throwable $e) {
             throw new SloneekUnauthorizedException(__('be.responses.auth.invalidToken'), $e);
         }
