@@ -14,10 +14,15 @@ use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
+    public function __construct(
+        private readonly BloggerRepository $bloggerRepository,
+    ) {
+    }
+
     public function login(LoginRequest $request, JwtService $jwtService): JsonResponse
     {
         $credentials = $request->validated();
-        $blogger = BloggerRepository::make()->findByEmail($credentials['email']);
+        $blogger = $this->bloggerRepository->findByEmail($credentials['email']);
 
         if ($blogger === null || !Hash::check($credentials['password'], $blogger->getPassword())) {
             throw new SloneekUnauthorizedException(__('be.responses.auth.invalidCredentials'));

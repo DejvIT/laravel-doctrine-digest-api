@@ -17,6 +17,8 @@ class ArticleController extends Controller
 {
     public function __construct(
         private readonly ArticleService $articleService,
+        private readonly ArticleRepository $articleRepository,
+        private readonly ArticleCategoryRepository $articleCategoryRepository,
     ) {
     }
 
@@ -27,7 +29,7 @@ class ArticleController extends Controller
         $validated = $request->validated();
         $blogger = $this->currentBlogger($request);
 
-        $result = ArticleRepository::make()->listByBlogger(
+        $result = $this->articleRepository->listByBlogger(
             $blogger->getUuid(),
             $validated['category_uuid'] ?? null,
             array_key_exists('distributed', $validated) ? (bool) $validated['distributed'] : null,
@@ -42,7 +44,7 @@ class ArticleController extends Controller
     {
         $validated = $request->validated();
         $blogger = $this->currentBlogger($request);
-        $category = ArticleCategoryRepository::make()->get($validated['category_uuid']);
+        $category = $this->articleCategoryRepository->get($validated['category_uuid']);
 
         $this->authorize('create', [Article::class, $category]);
 
@@ -58,7 +60,7 @@ class ArticleController extends Controller
 
     public function show(Request $request, string $uuid): JsonResponse
     {
-        $article = ArticleRepository::make()->get($uuid);
+        $article = $this->articleRepository->get($uuid);
         $this->authorize('view', $article);
 
         return $this->successResponse(ArticleResource::toArray($article));
@@ -66,7 +68,7 @@ class ArticleController extends Controller
 
     public function update(UpdateArticleRequest $request, string $uuid): JsonResponse
     {
-        $article = ArticleRepository::make()->get($uuid);
+        $article = $this->articleRepository->get($uuid);
         $this->authorize('update', $article);
 
         $article = $this->articleService->update($article, $request->validated());
@@ -76,7 +78,7 @@ class ArticleController extends Controller
 
     public function destroy(Request $request, string $uuid): JsonResponse
     {
-        $article = ArticleRepository::make()->get($uuid);
+        $article = $this->articleRepository->get($uuid);
         $this->authorize('delete', $article);
 
         $this->articleService->delete($article);

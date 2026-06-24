@@ -15,11 +15,14 @@ class DispatchArticleDigestsCommand extends Command
 
     protected $description = 'Dispatch article digest jobs for all subscribers';
 
-    public function handle(): int
+    public function handle(
+        ArticleRepository $articleRepository,
+        SubscriberRepository $subscriberRepository,
+    ): int
     {
         $cutoff = $this->resolveCutoff($this->option('cutoff'));
 
-        $articles = ArticleRepository::make()->findUndistributedBefore($cutoff);
+        $articles = $articleRepository->findUndistributedBefore($cutoff);
         if ($articles === []) {
             $this->info('No undistributed articles before cutoff. Nothing to dispatch.');
 
@@ -29,7 +32,7 @@ class DispatchArticleDigestsCommand extends Command
         $cutoffIso = $cutoff->format(DateTime::ATOM);
         $dispatched = 0;
 
-        foreach (SubscriberRepository::make()->iterateAll(500) as $subscriberUuid) {
+        foreach ($subscriberRepository->iterateAll(500) as $subscriberUuid) {
             SendArticleDigestJob::dispatch($subscriberUuid, $cutoffIso);
             $dispatched++;
         }

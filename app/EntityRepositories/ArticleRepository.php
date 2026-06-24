@@ -11,10 +11,7 @@ class ArticleRepository extends EntityRepository
 {
     public static function make(): self
     {
-        /** @var self $repository */
-        $repository = app('em')->getRepository(Article::class);
-
-        return $repository;
+        return app(self::class);
     }
 
     public function get(string $uuid): Article

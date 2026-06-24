@@ -10,10 +10,7 @@ class BloggerRepository extends EntityRepository
 {
     public static function make(): self
     {
-        /** @var self $repository */
-        $repository = app('em')->getRepository(Blogger::class);
-
-        return $repository;
+        return app(self::class);
     }
 
     public function get(string $uuid): Blogger

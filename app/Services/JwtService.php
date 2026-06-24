@@ -11,6 +11,11 @@ use Throwable;
 
 class JwtService
 {
+    public function __construct(
+        private readonly BloggerRepository $bloggerRepository,
+    ) {
+    }
+
     public function issueToken(Blogger $blogger): string
     {
         $now = time();
@@ -38,6 +43,6 @@ class JwtService
             throw new SloneekUnauthorizedException(__('be.responses.auth.invalidToken'));
         }
 
-        return BloggerRepository::make()->getWithCategories($payload->sub);
+        return $this->bloggerRepository->getWithCategories($payload->sub);
     }
 }

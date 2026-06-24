@@ -11,10 +11,7 @@ class SubscriberRepository extends EntityRepository
 {
     public static function make(): self
     {
-        /** @var self $repository */
-        $repository = app('em')->getRepository(Subscriber::class);
-
-        return $repository;
+        return app(self::class);
     }
 
     public function get(string $uuid): Subscriber

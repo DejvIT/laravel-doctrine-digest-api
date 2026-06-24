@@ -9,11 +9,16 @@ use Illuminate\Http\JsonResponse;
 
 class ArticleCategoryController extends Controller
 {
+    public function __construct(
+        private readonly ArticleCategoryRepository $articleCategoryRepository,
+    ) {
+    }
+
     public function index(ListArticleCategoriesRequest $request): JsonResponse
     {
         $validated = $request->validated();
 
-        $result = ArticleCategoryRepository::make()->list(
+        $result = $this->articleCategoryRepository->list(
             $validated['name'] ?? null,
             (int) ($validated['page'] ?? 1),
             (int) ($validated['per_page'] ?? 20)
@@ -24,7 +29,7 @@ class ArticleCategoryController extends Controller
 
     public function show(string $uuid): JsonResponse
     {
-        $category = ArticleCategoryRepository::make()->get($uuid);
+        $category = $this->articleCategoryRepository->get($uuid);
 
         return $this->successResponse(ArticleCategoryResource::toArray($category));
     }

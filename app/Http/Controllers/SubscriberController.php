@@ -9,11 +9,16 @@ use Illuminate\Http\JsonResponse;
 
 class SubscriberController extends Controller
 {
+    public function __construct(
+        private readonly SubscriberRepository $subscriberRepository,
+    ) {
+    }
+
     public function index(ListSubscribersRequest $request): JsonResponse
     {
         $validated = $request->validated();
 
-        $result = SubscriberRepository::make()->list(
+        $result = $this->subscriberRepository->list(
             $validated['category_uuid'] ?? null,
             $validated['email'] ?? null,
             (int) ($validated['page'] ?? 1),
