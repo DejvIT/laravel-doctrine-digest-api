@@ -9,12 +9,17 @@ use App\Http\Requests\ListArticlesRequest;
 use App\Http\Requests\StoreArticleRequest;
 use App\Http\Requests\UpdateArticleRequest;
 use App\Http\Resources\ArticleResource;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Services\ArticleService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ArticleController extends Controller
 {
+    public function __construct(
+        private readonly ArticleService $articleService,
+    ) {
+    }
+
     public function index(ListArticlesRequest $request): JsonResponse
     {
         $this->authorize('viewAny', Article::class);
@@ -46,18 +51,12 @@ class ArticleController extends Controller
 
         $this->authorize('create', [Article::class, $category]);
 
-        /** @var EntityManagerInterface $em */
-        $em = app('em');
-
-        $article = new Article();
-        $article->setTitle($validated['title']);
-        $article->setContent($validated['content']);
-        $article->setBlogger($blogger);
-        $article->setCategory($category);
-        $article->setDistributedAt(null);
-
-        $em->persist($article);
-        $em->flush();
+        $article = $this->articleService->create(
+            $blogger,
+            $category,
+            $validated['title'],
+            $validated['content']
+        );
 
         return $this->createdResponse(ArticleResource::toArray($article));
     }
@@ -75,19 +74,7 @@ class ArticleController extends Controller
         $article = ArticleRepository::make()->get($uuid);
         $this->authorize('update', $article);
 
-        $validated = $request->validated();
-
-        if (array_key_exists('title', $validated)) {
-            $article->setTitle($validated['title']);
-        }
-
-        if (array_key_exists('content', $validated)) {
-            $article->setContent($validated['content']);
-        }
-
-        /** @var EntityManagerInterface $em */
-        $em = app('em');
-        $em->flush();
+        $article = $this->articleService->update($article, $request->validated());
 
         return $this->successResponse(ArticleResource::toArray($article));
     }
@@ -97,10 +84,7 @@ class ArticleController extends Controller
         $article = ArticleRepository::make()->get($uuid);
         $this->authorize('delete', $article);
 
-        /** @var EntityManagerInterface $em */
-        $em = app('em');
-        $em->remove($article);
-        $em->flush();
+        $this->articleService->delete($article);
 
         return $this->noContentResponse();
     }
