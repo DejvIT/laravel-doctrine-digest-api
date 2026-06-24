@@ -35,12 +35,7 @@ class ArticleController extends Controller
             (int) ($validated['per_page'] ?? 20)
         );
 
-        return $this->successResponse([
-            'items'    => array_map(fn (Article $article) => ArticleResource::toArray($article), $result['items']),
-            'total'    => $result['total'],
-            'page'     => $result['page'],
-            'per_page' => $result['per_page'],
-        ]);
+        return $this->paginatedResponse($result, ArticleResource::toArray(...));
     }
 
     public function store(StoreArticleRequest $request): JsonResponse

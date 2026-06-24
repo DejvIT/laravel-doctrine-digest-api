@@ -50,6 +50,19 @@ abstract class Controller
         );
     }
 
+    /**
+     * @param array{items: array<int, mixed>, total: int, page: int, per_page: int} $result
+     */
+    protected function paginatedResponse(array $result, callable $mapper): JsonResponse
+    {
+        return $this->successResponse([
+            'items'    => array_map($mapper, $result['items']),
+            'total'    => $result['total'],
+            'page'     => $result['page'],
+            'per_page' => $result['per_page'],
+        ]);
+    }
+
 
     protected function createdResponse(array $data = [], string $message = null): JsonResponse
     {

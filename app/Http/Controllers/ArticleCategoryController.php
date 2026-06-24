@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\EntityRepositories\ArticleCategoryRepository;
-use App\Entities\ArticleCategory;
 use App\Http\Requests\ListArticleCategoriesRequest;
 use App\Http\Resources\ArticleCategoryResource;
 use Illuminate\Http\JsonResponse;
@@ -20,15 +19,7 @@ class ArticleCategoryController extends Controller
             (int) ($validated['per_page'] ?? 20)
         );
 
-        return $this->successResponse([
-            'items'    => array_map(
-                fn (ArticleCategory $category) => ArticleCategoryResource::toArray($category),
-                $result['items']
-            ),
-            'total'    => $result['total'],
-            'page'     => $result['page'],
-            'per_page' => $result['per_page'],
-        ]);
+        return $this->paginatedResponse($result, ArticleCategoryResource::toArray(...));
     }
 
     public function show(string $uuid): JsonResponse
