@@ -1,0 +1,66 @@
+<?php
+
+namespace App\Console\Commands;
+
+use App\EntityRepositories\ArticleRepository;
+use App\EntityRepositories\SubscriberRepository;
+use App\Jobs\SendArticleDigestJob;
+use DateTime;
+use Illuminate\Console\Command;
+use Illuminate\Support\Carbon;
+
+class DispatchArticleDigestsCommand extends Command
+{
+    protected $signature = 'articles:dispatch-digests {--cutoff=}';
+
+    protected $description = 'Dispatch article digest jobs for all subscribers';
+
+    public function handle(): int
+    {
+        $cutoff = $this->resolveCutoff($this->option('cutoff'));
+
+        $articles = ArticleRepository::make()->findUndistributedBefore($cutoff);
+        if ($articles === []) {
+            $this->info('No undistributed articles before cutoff. Nothing to dispatch.');
+
+            return self::SUCCESS;
+        }
+
+        $cutoffIso = $cutoff->format(DateTime::ATOM);
+        $dispatched = 0;
+
+        foreach (SubscriberRepository::make()->iterateAll(500) as $subscriberUuid) {
+            SendArticleDigestJob::dispatch($subscriberUuid, $cutoffIso);
+            $dispatched++;
+        }
+
+        $this->info(sprintf(
+            'Dispatched %d digest jobs for cutoff %s.',
+            $dispatched,
+            $cutoff->format('Y-m-d H:i:s')
+        ));
+
+        return self::SUCCESS;
+    }
+
+    private function resolveCutoff(?string $cutoffOption): DateTime
+    {
+        if ($cutoffOption !== null && $cutoffOption !== '') {
+            return new DateTime($cutoffOption);
+        }
+
+        $now = Carbon::now(config('app.timezone'));
+        $slot11 = $now->copy()->startOfDay()->setTime(11, 0, 0);
+        $slot17 = $now->copy()->startOfDay()->setTime(17, 0, 0);
+
+        if ($now->lt($slot11)) {
+            return $slot17->copy()->subDay()->toDateTime();
+        }
+
+        if ($now->lt($slot17)) {
+            return $slot11->toDateTime();
+        }
+
+        return $slot17->toDateTime();
+    }
+}

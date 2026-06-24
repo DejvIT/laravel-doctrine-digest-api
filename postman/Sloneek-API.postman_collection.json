@@ -1,0 +1,315 @@
+{
+	"info": {
+		"_postman_id": "sloneek-assignment-api",
+		"name": "Sloneek Assignment API",
+		"description": "REST API for bloggers, articles, and subscriber digests.\n\n## Quick start\n1. Import this collection + `Sloneek-Local.postman_environment.json`\n2. Select environment **Sloneek — Local (Sail)**\n3. Run **0. Setup → Login** (saves `token` automatically)\n4. Run **0. Setup → Me** (saves `category_uuid` from assigned categories)\n5. Run any other request\n\n**Digest emails:** use terminal `./vendor/bin/sail artisan articles:dispatch-digests --cutoff=\"2030-01-01 00:00:00\"` with `queue:work` running. View at http://localhost:8025",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{token}}",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "0. Setup (run first)",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"const json = pm.response.json();",
+									"pm.test('Token returned', () => pm.expect(json.data.token).to.be.a('string'));",
+									"pm.environment.set('token', json.data.token);",
+									"console.log('Token saved to environment.');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{blogger_email}}\",\n  \"password\": \"{{blogger_password}}\"\n}"
+						},
+						"url": "{{base_url}}/auth/login"
+					}
+				},
+				{
+					"name": "Me (save category_uuid)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"const json = pm.response.json();",
+									"const cats = json.data.categories || [];",
+									"pm.test('Has assigned categories', () => pm.expect(cats.length).to.be.above(0));",
+									"if (cats[0]) {",
+									"  pm.environment.set('category_uuid', cats[0].uuid);",
+									"  console.log('category_uuid saved:', cats[0].uuid, '(' + cats[0].name + ')');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"url": "{{base_url}}/auth/me"
+					}
+				},
+				{
+					"name": "Health check",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"url": "{{base_url}}/"
+					}
+				}
+			]
+		},
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Login — invalid password (401)",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{blogger_email}}\",\n  \"password\": \"wrong-password\"\n}"
+						},
+						"url": "{{base_url}}/auth/login"
+					}
+				},
+				{
+					"name": "Articles without token (401)",
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"url": "{{base_url}}/articles"
+					}
+				},
+				{
+					"name": "Me",
+					"request": {
+						"method": "GET",
+						"url": "{{base_url}}/auth/me"
+					}
+				}
+			]
+		},
+		{
+			"name": "Articles",
+			"item": [
+				{
+					"name": "List articles",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/articles?page=1&per_page=20",
+							"host": ["{{base_url}}"],
+							"path": ["articles"],
+							"query": [
+								{ "key": "page", "value": "1" },
+								{ "key": "per_page", "value": "20" },
+								{ "key": "category_uuid", "value": "{{category_uuid}}", "disabled": true },
+								{ "key": "distributed", "value": "false", "disabled": true }
+							]
+						}
+					}
+				},
+				{
+					"name": "List — pending only",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/articles?distributed=false&page=1&per_page=20",
+							"host": ["{{base_url}}"],
+							"path": ["articles"],
+							"query": [
+								{ "key": "distributed", "value": "false" },
+								{ "key": "page", "value": "1" },
+								{ "key": "per_page", "value": "20" }
+							]
+						}
+					}
+				},
+				{
+					"name": "List — distributed only",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/articles?distributed=true&page=1&per_page=20",
+							"host": ["{{base_url}}"],
+							"path": ["articles"],
+							"query": [
+								{ "key": "distributed", "value": "true" },
+								{ "key": "page", "value": "1" },
+								{ "key": "per_page", "value": "20" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Create article",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"  const uuid = pm.response.json().data.uuid;",
+									"  pm.environment.set('article_uuid', uuid);",
+									"  console.log('article_uuid saved:', uuid);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Postman test article\",\n  \"content\": \"Created from Postman collection.\",\n  \"category_uuid\": \"{{category_uuid}}\"\n}"
+						},
+						"url": "{{base_url}}/articles"
+					}
+				},
+				{
+					"name": "Create — wrong category (403)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Forbidden post\",\n  \"content\": \"Should fail.\",\n  \"category_uuid\": \"00000000-0000-0000-0000-000000000001\"\n}"
+						},
+						"url": "{{base_url}}/articles",
+						"description": "Replace category_uuid with a category NOT in /auth/me for a real 403 test."
+					}
+				},
+				{
+					"name": "Show article",
+					"request": {
+						"method": "GET",
+						"url": "{{base_url}}/articles/{{article_uuid}}"
+					}
+				},
+				{
+					"name": "Update article",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Updated from Postman\"\n}"
+						},
+						"url": "{{base_url}}/articles/{{article_uuid}}"
+					}
+				},
+				{
+					"name": "Delete article",
+					"request": {
+						"method": "DELETE",
+						"url": "{{base_url}}/articles/{{article_uuid}}"
+					}
+				}
+			]
+		},
+		{
+			"name": "Categories",
+			"item": [
+				{
+					"name": "List categories",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/article-categories?page=1&per_page=20",
+							"host": ["{{base_url}}"],
+							"path": ["article-categories"],
+							"query": [
+								{ "key": "page", "value": "1" },
+								{ "key": "per_page", "value": "20" },
+								{ "key": "name", "value": "tech", "disabled": true }
+							]
+						}
+					}
+				},
+				{
+					"name": "Show category",
+					"request": {
+						"method": "GET",
+						"url": "{{base_url}}/article-categories/{{category_uuid}}"
+					}
+				}
+			]
+		},
+		{
+			"name": "Subscribers",
+			"item": [
+				{
+					"name": "List subscribers",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/subscribers?page=1&per_page=50",
+							"host": ["{{base_url}}"],
+							"path": ["subscribers"],
+							"query": [
+								{ "key": "page", "value": "1" },
+								{ "key": "per_page", "value": "50" },
+								{ "key": "category_uuid", "value": "{{category_uuid}}", "disabled": true },
+								{ "key": "email", "value": "example.com", "disabled": true }
+							]
+						}
+					}
+				},
+				{
+					"name": "List by category",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/subscribers?category_uuid={{category_uuid}}&page=1&per_page=10",
+							"host": ["{{base_url}}"],
+							"path": ["subscribers"],
+							"query": [
+								{ "key": "category_uuid", "value": "{{category_uuid}}" },
+								{ "key": "page", "value": "1" },
+								{ "key": "per_page", "value": "10" }
+							]
+						}
+					}
+				}
+			]
+		}
+	]
+}

@@ -1,0 +1,39 @@
+/node_modules
+/public/hot
+/public/storage
+/storage/*.key
+/storage/proxies/
+/vendor
+.env
+.env.testing
+.env.backup
+.env.docker
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+auth.json
+.idea/
+/app/Http/Modules/Sample
+
+# Ignore local testing stuff
+/app/Http/Modules/Test
+/routes/test.php
+
+/app/Http/Modules/Sample/
+/app/Console/Commands/LocalCommands/
+
+# Ignote test coverage directory
+/testsCoverage/
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
+
+#Auto-changelog files
+changelog-data.json
+
+/storage/api-docs/
+/resources/views/vendor/l5-swagger
