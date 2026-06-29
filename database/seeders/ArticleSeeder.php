@@ -16,6 +16,13 @@ class ArticleSeeder extends Seeder
     {
         /** @var EntityManagerInterface $em */
         $em = app('em');
+
+        if ($em->getRepository(Article::class)->count([]) > 0) {
+            $this->command?->info('Articles already seeded. Skipping.');
+
+            return;
+        }
+
         $faker = FakerFactory::create();
 
         /** @var list<Blogger> $bloggers */

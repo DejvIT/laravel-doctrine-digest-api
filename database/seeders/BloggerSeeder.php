@@ -17,6 +17,13 @@ class BloggerSeeder extends Seeder
     {
         /** @var EntityManagerInterface $em */
         $em = app('em');
+
+        if ($em->getRepository(Blogger::class)->findOneBy(['email' => 'blogger1@example.com']) !== null) {
+            $this->command?->info('Bloggers already seeded. Skipping.');
+
+            return;
+        }
+
         $faker = FakerFactory::create();
 
         /** @var list<ArticleCategory> $categories */

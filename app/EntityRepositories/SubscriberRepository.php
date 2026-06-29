@@ -86,4 +86,38 @@ class SubscriberRepository extends EntityRepository
             $offset += $chunkSize;
         }
     }
+
+    /**
+     * Yields subscriber UUIDs that follow at least one category with undistributed
+     * articles created before the cutoff.
+     */
+    public function iterateWithUndistributedArticlesBefore(\DateTime $cutoff, int $chunkSize): Generator
+    {
+        $offset = 0;
+
+        while (true) {
+            $uuids = $this->createQueryBuilder('s')
+                ->select('DISTINCT s.uuid')
+                ->innerJoin('s.categories', 'c')
+                ->innerJoin('c.articles', 'a')
+                ->where('a.distributedAt IS NULL')
+                ->andWhere('a.created < :cutoff')
+                ->setParameter('cutoff', $cutoff)
+                ->orderBy('s.uuid', 'ASC')
+                ->setFirstResult($offset)
+                ->setMaxResults($chunkSize)
+                ->getQuery()
+                ->getSingleColumnResult();
+
+            if ($uuids === []) {
+                break;
+            }
+
+            foreach ($uuids as $uuid) {
+                yield $uuid;
+            }
+
+            $offset += $chunkSize;
+        }
+    }
 }

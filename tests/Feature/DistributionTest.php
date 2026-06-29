@@ -52,4 +52,43 @@ class DistributionTest extends TestCase
         $articles = ArticleRepository::make()->findUndistributedBefore(new \DateTime($cutoff));
         $this->assertSame([], $articles);
     }
+
+    public function test_dispatch_marks_articles_in_categories_without_subscribers_as_distributed(): void
+    {
+        Mail::fake();
+
+        $this->seedDomainData();
+        $orphanArticle = $this->createArticle($this->blogger2, $this->categoryB);
+        $this->createArticle($this->blogger1, $this->categoryA);
+
+        $cutoff = now()->addHour()->format('Y-m-d H:i:s');
+
+        $this->artisan('articles:dispatch-digests', ['--cutoff' => $cutoff]);
+
+        Mail::assertSent(ArticleDigestMail::class, 1);
+
+        app('em')->clear();
+
+        $reloaded = ArticleRepository::make()->get($orphanArticle->getUuid());
+        $this->assertNotNull($reloaded->getDistributedAt());
+    }
+
+    public function test_dispatch_marks_orphan_articles_when_no_subscriber_matches(): void
+    {
+        Mail::fake();
+
+        $this->seedDomainData();
+        $orphanArticle = $this->createArticle($this->blogger2, $this->categoryB);
+
+        $cutoff = now()->addHour()->format('Y-m-d H:i:s');
+
+        $this->artisan('articles:dispatch-digests', ['--cutoff' => $cutoff]);
+
+        Mail::assertNothingSent();
+
+        app('em')->clear();
+
+        $reloaded = ArticleRepository::make()->get($orphanArticle->getUuid());
+        $this->assertNotNull($reloaded->getDistributedAt());
+    }
 }

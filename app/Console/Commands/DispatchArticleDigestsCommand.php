@@ -15,7 +15,7 @@ class DispatchArticleDigestsCommand extends Command
 {
     protected $signature = 'articles:dispatch-digests {--cutoff=}';
 
-    protected $description = 'Dispatch article digest jobs for all subscribers';
+    protected $description = 'Dispatch article digest jobs for subscribers with matching undistributed articles';
 
     public function handle(
         ArticleRepository $articleRepository,
@@ -34,12 +34,13 @@ class DispatchArticleDigestsCommand extends Command
         $cutoffIso = $cutoff->format(DateTime::ATOM);
         $jobs = [];
 
-        foreach ($subscriberRepository->iterateAll(500) as $subscriberUuid) {
+        foreach ($subscriberRepository->iterateWithUndistributedArticlesBefore($cutoff, 500) as $subscriberUuid) {
             $jobs[] = new SendArticleDigestJob($subscriberUuid, $cutoffIso);
         }
 
         if ($jobs === []) {
-            $this->info('No subscribers to dispatch to.');
+            FinalizeArticleDistributionJob::dispatch($cutoffIso);
+            $this->info('No subscribers matched undistributed articles. Articles marked as distributed.');
 
             return self::SUCCESS;
         }

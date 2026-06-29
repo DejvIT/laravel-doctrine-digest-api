@@ -13,6 +13,12 @@ class ArticleCategorySeeder extends Seeder
         /** @var EntityManagerInterface $em */
         $em = app('em');
 
+        if ($em->getRepository(ArticleCategory::class)->findOneBy(['name' => 'Technology']) !== null) {
+            $this->command?->info('Article categories already seeded. Skipping.');
+
+            return;
+        }
+
         $categories = [
             ['name' => 'Technology', 'description' => 'Software, gadgets, and digital innovation'],
             ['name' => 'Sports', 'description' => 'Athletics, teams, and competitions'],

@@ -14,6 +14,13 @@ class SubscriberSeeder extends Seeder
     {
         /** @var EntityManagerInterface $em */
         $em = app('em');
+
+        if ($em->getRepository(Subscriber::class)->count([]) >= 100) {
+            $this->command?->info('Subscribers already seeded. Skipping.');
+
+            return;
+        }
+
         $faker = FakerFactory::create();
 
         /** @var list<ArticleCategory> $categories */
