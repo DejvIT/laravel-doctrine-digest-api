@@ -2,8 +2,8 @@
 
 namespace App\Http;
 
-use App\Http\Middleware\JwtAuthenticate;
 use App\Http\Middlewares\Cors;
+use App\Http\Middlewares\JwtAuthenticate;
 use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Auth\Middleware\Authorize;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
