@@ -119,4 +119,16 @@ class ArticleRepository extends EntityRepository
             ->setParameter('uuids', $uuids)
             ->execute();
     }
+
+    public function markDistributedBeforeCutoff(DateTime $cutoff, DateTime $distributedAt): int
+    {
+        return $this->getEntityManager()->createQuery(
+            'UPDATE App\Entities\Article a
+             SET a.distributedAt = :distributedAt
+             WHERE a.distributedAt IS NULL AND a.created < :cutoff'
+        )
+            ->setParameter('distributedAt', $distributedAt)
+            ->setParameter('cutoff', $cutoff)
+            ->execute();
+    }
 }

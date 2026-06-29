@@ -4,10 +4,12 @@ namespace App\Console\Commands;
 
 use App\EntityRepositories\ArticleRepository;
 use App\EntityRepositories\SubscriberRepository;
+use App\Jobs\FinalizeArticleDistributionJob;
 use App\Jobs\SendArticleDigestJob;
 use DateTime;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Bus;
 
 class DispatchArticleDigestsCommand extends Command
 {
@@ -30,16 +32,26 @@ class DispatchArticleDigestsCommand extends Command
         }
 
         $cutoffIso = $cutoff->format(DateTime::ATOM);
-        $dispatched = 0;
+        $jobs = [];
 
         foreach ($subscriberRepository->iterateAll(500) as $subscriberUuid) {
-            SendArticleDigestJob::dispatch($subscriberUuid, $cutoffIso);
-            $dispatched++;
+            $jobs[] = new SendArticleDigestJob($subscriberUuid, $cutoffIso);
         }
+
+        if ($jobs === []) {
+            $this->info('No subscribers to dispatch to.');
+
+            return self::SUCCESS;
+        }
+
+        Bus::batch($jobs)
+            ->name('article-digest-distribution')
+            ->then(fn () => FinalizeArticleDistributionJob::dispatch($cutoffIso))
+            ->dispatch();
 
         $this->info(sprintf(
             'Dispatched %d digest jobs for cutoff %s.',
-            $dispatched,
+            count($jobs),
             $cutoff->format('Y-m-d H:i:s')
         ));
 

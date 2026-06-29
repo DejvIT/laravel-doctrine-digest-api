@@ -3,6 +3,7 @@
 namespace Tests\Concerns;
 
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schema;
 
 trait RefreshDoctrineDatabase
 {
@@ -42,6 +43,7 @@ trait RefreshDoctrineDatabase
             app('em')->getConnection()->close();
 
             $this->runDoctrineMigrateWithRetry();
+            $this->runLaravelQueueMigrations();
 
             static::$schemaInitialized = true;
         } finally {
@@ -66,6 +68,18 @@ trait RefreshDoctrineDatabase
                 app('em')->getConnection()->close();
             }
         }
+    }
+
+    protected function runLaravelQueueMigrations(): void
+    {
+        if (Schema::hasTable('job_batches')) {
+            return;
+        }
+
+        Artisan::call('migrate', [
+            '--path' => 'database/migrations/2026_06_29_144140_create_job_batches_table.php',
+            '--no-interaction' => true,
+        ]);
     }
 
     protected function isDeadlock(\Throwable $exception): bool
